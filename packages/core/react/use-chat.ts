@@ -72,6 +72,7 @@ const getStreamedResponse = async (
   extraMetadataRef: React.MutableRefObject<any>,
   messagesRef: React.MutableRefObject<Message[]>,
   abortControllerRef: React.MutableRefObject<AbortController | null>,
+  updateLiveMessages: (lastMessage: any) => void,
   onFinish?: (message: Message) => void,
   onResponse?: (response: Response) => void | Promise<void>,
   sendExtraMessageFields?: boolean
@@ -86,7 +87,7 @@ const getStreamedResponse = async (
     body: JSON.stringify({
       messages: sendExtraMessageFields
         ? chatRequest.messages
-        : chatRequest.messages.map(
+        : chatRequest?.liveMessages?.map(
             ({ role, content, name, function_call }) => ({
               role,
               content,
@@ -164,7 +165,7 @@ const getStreamedResponse = async (
     } else {
       responseMessage['content'] = streamedResponse
     }
-
+    updateLiveMessages(responseMessage);
     mutate([...chatRequest.messages, { ...responseMessage }], false)
 
     // The request has been aborted, stop reading the stream.
@@ -203,8 +204,11 @@ export function useChat({
   onError,
   credentials,
   headers,
-  body
-}: UseChatOptions = {}): UseChatHelpers {
+  body,
+  addNewLiveMessage,
+  updateLiveMessages,
+  getLiveMessages,
+}: UseChatOptions ): UseChatHelpers {
   // Generate a unique id for the chat if not provided.
   const hookId = useId()
   const chatId = id || hookId
@@ -261,6 +265,7 @@ export function useChat({
           extraMetadataRef,
           messagesRef,
           abortControllerRef,
+          updateLiveMessages,
           onFinish,
           onResponse,
           sendExtraMessageFields
@@ -321,9 +326,16 @@ export function useChat({
       if (!message.id) {
         message.id = nanoid()
       }
-
+      if (addNewLiveMessage) {
+        addNewLiveMessage(message);
+      }
+      const liveMessages = getLiveMessages
+        ? getLiveMessages()
+        : messagesRef.current;
+      
       const chatRequest: ChatRequest = {
         messages: messagesRef.current.concat(message as Message),
+        liveMessages: [...liveMessages, message as Message],
         options,
         ...(functions !== undefined && { functions }),
         ...(function_call !== undefined && { function_call })

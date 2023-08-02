@@ -31,6 +31,7 @@ export type CreateMessage = Omit<Message, 'id'> & {
 
 export type ChatRequest = {
   messages: Message[]
+  liveMessages?: Message[];
   options?: RequestOptions
   functions?: Array<ChatCompletionFunctions>
   function_call?: CreateChatCompletionRequestFunctionCall
@@ -70,6 +71,9 @@ export type UseChatOptions = {
    * Initial messages of the chat. Useful to load an existing chat history.
    */
   initialMessages?: Message[]
+  addNewLiveMessage?: (message: Message | CreateMessage) => void
+  updateLiveMessages: (lastMessage: any) => void
+  getLiveMessages?: () => Message[]
 
   /**
    * Initial input of the chat.
